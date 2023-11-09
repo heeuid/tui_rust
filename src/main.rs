@@ -24,6 +24,8 @@ fn main() -> Result<()> {
     // Create an application.
     let mut app = App::new();
 
+    app = app.conf_mine_map((30, 30), 300).init_mine_map();
+
     // Initialize the terminal user interface.
     let backend = CrosstermBackend::new(std::io::stderr());
     let terminal = Terminal::new(backend)?;

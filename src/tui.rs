@@ -3,7 +3,7 @@ use std::{io, panic};
 use anyhow::Result;
 use crossterm::{
     event::{DisableMouseCapture, EnableMouseCapture},
-    terminal::{self, EnterAlternateScreen, LeaveAlternateScreen},
+    terminal::{self, EnterAlternateScreen, LeaveAlternateScreen, SetSize},
 };
 
 pub type Frame<'a> = ratatui::Frame<'a>;
