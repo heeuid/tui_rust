@@ -258,7 +258,7 @@ impl App {
         self.over = true;
     }
 
-    fn uncover_dfs(&mut self, x: u16, y: u16, go: bool) -> u32 {
+    fn uncover_chaining(&mut self, x: u16, y: u16, go: bool) -> u32 {
         let (width, height) = self.map_size;
         let mut cnt = 1;
 
@@ -282,11 +282,11 @@ impl App {
             }
 
             if let TileContent::Empty(n) = tile.content {
-                if n == 0 {
-                    cnt += self.uncover_dfs(new_x as u16, new_y as u16, true);
+                cnt += if n == 0 {
+                    self.uncover_chaining(new_x as u16, new_y as u16, true)
                 } else {
-                    cnt += self.uncover_dfs(new_x as u16, new_y as u16, false);
-                }
+                    self.uncover_chaining(new_x as u16, new_y as u16, false)
+                };
             }
         }
 
@@ -306,9 +306,9 @@ impl App {
         match &tile.content {
             TileContent::Empty(n) => {
                 let cnt = if *n == 0 {
-                    self.uncover_dfs(x, y, true)
+                    self.uncover_chaining(x, y, true)
                 } else {
-                    self.uncover_dfs(x, y, false)
+                    self.uncover_chaining(x, y, false)
                 } as u16;
 
                 self.empty_cnt = self.empty_cnt.saturating_sub(cnt);

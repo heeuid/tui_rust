@@ -24,11 +24,11 @@ pub enum Event {
 #[derive(Debug)]
 pub struct EventHandler {
     /// Event sender channel.
-    sender: Sender<Event>,
+    _sender: Sender<Event>,
     /// Event receiver channel.
     receiver: Receiver<Event>,
     /// Event handler thread.
-    handler: thread::JoinHandle<()>,
+    _handler: thread::JoinHandle<()>,
 }
 
 impl EventHandler {
@@ -69,9 +69,9 @@ impl EventHandler {
             })
         };
         Self {
-            sender,
+            _sender: sender,
             receiver,
-            handler,
+            _handler: handler,
         }
     }
 

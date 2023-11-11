@@ -1,7 +1,8 @@
 use ratatui::{
-    layout::{Alignment, Constraint, Direction, Layout, Rect},
-    style::{Color, Modifier, Style},
-    widgets::{Block, BorderType, Borders, Padding},
+    //layout::{Alignment, Constraint, Direction, Layout, Rect},
+    layout::Rect,
+    style::{Color, Style},
+    widgets::{Block, Borders, Padding},
 };
 
 use crate::{app::App, tui::Frame};
@@ -16,10 +17,11 @@ pub fn render(app: &mut App, f: &mut Frame) {
 
 fn render_game(app: &mut App, f: &mut Frame) {
     let (map_width, map_height) = app.map_size;
+    let frame_size = f.size();
     let size = Rect {
-        width: (map_width * 2) + 2,
-        height: map_height + 2,
-        ..f.size()
+        width: u16::min((map_width * 2) + 2, frame_size.width),
+        height: u16::min(map_height + 2, frame_size.height),
+        ..frame_size
     };
 
     let block = Block::default()
@@ -57,7 +59,7 @@ fn render_game(app: &mut App, f: &mut Frame) {
     }
 }
 
-fn render_menu(app: &mut App, f: &mut Frame) {}
+fn render_menu(_app: &mut App, _f: &mut Frame) {}
 
 fn render_over(app: &mut App, f: &mut Frame) {
     let (message, fg_color, bg_color) = if app.empty_cnt == 0 {
@@ -68,11 +70,11 @@ fn render_over(app: &mut App, f: &mut Frame) {
     let len_msg = message.len() as u16;
     let (map_w, map_h) = app.map_size;
     let (mid_x, mid_y) = (1 + map_w / 2, 1 + map_h / 2);
-    let (over_x, over_y) = ((mid_x - len_msg / 2) * 2, mid_y - 1);
+    let (over_x, over_y) = ((mid_x - len_msg / 2 + 1) * 2, mid_y - 1);
     let chunk = {
         let base_rect = Rect::default();
         Rect {
-            x: over_x + 2,
+            x: over_x,
             y: over_y,
             width: len_msg + 2,
             height: 3,

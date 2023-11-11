@@ -45,8 +45,7 @@ pub fn update_game(app: &mut App, key_event: KeyEvent) {
 
 pub fn update_over(app: &mut App, key_event: KeyEvent) {
     match key_event.code {
-        KeyCode::Esc | KeyCode::Char('q') => app.quit(),
-        KeyCode::Enter => app.reset(),
+        KeyCode::Esc | KeyCode::Char('q') | KeyCode::Enter => app.reset(),
         _ => {}
     }
 }
