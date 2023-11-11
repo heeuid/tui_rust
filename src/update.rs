@@ -38,7 +38,7 @@ pub fn update_game(app: &mut App, key_event: KeyEvent) {
         KeyCode::Left | KeyCode::Char('h') => app.move_left(),
         KeyCode::Right | KeyCode::Char('l') => app.move_right(),
         KeyCode::Enter => app.uncover_tile(),
-        KeyCode::Char(' ') => app.change_cover(),
+        KeyCode::Char(' ') | KeyCode::Char('f') => app.change_cover(),
         _ => {}
     };
 }

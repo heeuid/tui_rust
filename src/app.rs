@@ -1,97 +1,101 @@
 use rand::prelude::*;
-use ratatui::style::{Color, Style};
+use tile::{Tile, TileContent, TileCover};
 
-#[derive(Debug, Clone, Copy)]
-pub enum TileContent {
-    Empty(u8),
-    Bomb,
-}
+mod tile {
+    use ratatui::style::{Color, Style};
 
-#[derive(Debug, Clone, Copy)]
-pub enum TileCover {
-    Empty,
-    QuestionMark,
-    FlagMark,
-}
+    #[derive(Debug, Clone, Copy)]
+    pub enum TileContent {
+        Empty(u8),
+        Bomb,
+    }
 
-impl TileCover {
-    pub fn next_cover(&self) -> Self {
-        match self {
-            Self::Empty => Self::FlagMark,
-            Self::FlagMark => Self::QuestionMark,
-            Self::QuestionMark => Self::Empty,
+    #[derive(Debug, Clone, Copy)]
+    pub enum TileCover {
+        Empty,
+        QuestionMark,
+        FlagMark,
+    }
+
+    impl TileCover {
+        pub fn next_cover(&self) -> Self {
+            match self {
+                Self::Empty => Self::FlagMark,
+                Self::FlagMark => Self::QuestionMark,
+                Self::QuestionMark => Self::Empty,
+            }
         }
     }
-}
 
-#[derive(Debug, Clone, Copy)]
-pub struct Tile {
-    content: TileContent,
-    cover: Option<TileCover>,
-}
+    #[derive(Debug, Clone, Copy)]
+    pub struct Tile {
+        pub content: TileContent,
+        pub cover: Option<TileCover>,
+    }
 
-const EMPTY_NUM_COLORS: [Color; 9] = [
-    Color::Gray,
-    Color::LightBlue,
-    Color::LightRed,
-    Color::LightGreen,
-    Color::LightMagenta,
-    Color::LightCyan,
-    Color::LightYellow,
-    Color::LightBlue,
-    Color::LightRed,
-];
+    const EMPTY_NUM_COLORS: [Color; 9] = [
+        Color::Gray,
+        Color::LightBlue,
+        Color::LightRed,
+        Color::LightGreen,
+        Color::LightMagenta,
+        Color::LightCyan,
+        Color::LightYellow,
+        Color::LightBlue,
+        Color::LightRed,
+    ];
 
-impl Tile {
-    pub fn symbol_n_style<'a>(&self) -> (&'a str, Style) {
-        match &self.cover {
-            Some(cover) => match cover {
-                TileCover::Empty => (
-                    "ㅁ",
-                    Style::default()
-                        .bg(Color::Rgb(180, 180, 180))
-                        .fg(Color::White),
-                ),
-                TileCover::QuestionMark => (
-                    " ?",
-                    Style::default()
-                        .bg(Color::Rgb(200, 200, 180))
-                        .fg(Color::Yellow),
-                ),
-                TileCover::FlagMark => (
-                    " ⚑",
-                    Style::default()
-                        .bg(Color::Rgb(200, 180, 180))
-                        .fg(Color::Red),
-                ),
-            },
-            None => match self.content {
-                TileContent::Empty(num) => {
-                    let s = match num {
-                        1 => " 1",
-                        2 => " 2",
-                        3 => " 3",
-                        4 => " 4",
-                        5 => " 5",
-                        6 => " 6",
-                        7 => " 7",
-                        8 => " 8",
-                        _ => " .",
-                    };
-                    (
-                        s,
+    impl Tile {
+        pub fn symbol_n_style<'a>(&self) -> (&'a str, Style) {
+            match &self.cover {
+                Some(cover) => match cover {
+                    TileCover::Empty => (
+                        "ㅁ",
                         Style::default()
-                            .bg(EMPTY_NUM_COLORS[num as usize])
-                            .fg(Color::Black),
-                    )
-                }
-                TileContent::Bomb => (
-                    " *",
-                    Style::default()
-                        .bg(Color::Rgb(250, 200, 200))
-                        .fg(Color::Red),
-                ),
-            },
+                            .bg(Color::Rgb(180, 180, 180))
+                            .fg(Color::White),
+                    ),
+                    TileCover::QuestionMark => (
+                        " ?",
+                        Style::default()
+                            .bg(Color::Rgb(200, 200, 180))
+                            .fg(Color::Yellow),
+                    ),
+                    TileCover::FlagMark => (
+                        " ⚑",
+                        Style::default()
+                            .bg(Color::Rgb(200, 180, 180))
+                            .fg(Color::Red),
+                    ),
+                },
+                None => match self.content {
+                    TileContent::Empty(num) => {
+                        let s = match num {
+                            1 => " 1",
+                            2 => " 2",
+                            3 => " 3",
+                            4 => " 4",
+                            5 => " 5",
+                            6 => " 6",
+                            7 => " 7",
+                            8 => " 8",
+                            _ => " .",
+                        };
+                        (
+                            s,
+                            Style::default()
+                                .bg(EMPTY_NUM_COLORS[num as usize])
+                                .fg(Color::Black),
+                        )
+                    }
+                    TileContent::Bomb => (
+                        " *",
+                        Style::default()
+                            .bg(Color::Rgb(250, 200, 200))
+                            .fg(Color::Red),
+                    ),
+                },
+            }
         }
     }
 }
@@ -120,6 +124,7 @@ pub struct App {
 
     pub map_size: (u16, u16), //(w,h)
     pub bomb_cnt: u16,
+    pub empty_cnt: u16,
     pub curr_pos: (u16, u16), //(x,y)
     pub mine_map: Vec<Vec<Tile>>,
 }
@@ -138,10 +143,16 @@ impl App {
         self.should_quit = true;
     }
 
-    pub fn conf_mine_map(mut self, map_size: (u16, u16), bomb_cnt: u16) -> Self {
+    fn init_members(&mut self, map_size: (u16, u16), bomb_cnt: u16) {
         self.map_size = map_size;
         self.bomb_cnt = bomb_cnt;
+        self.empty_cnt = map_size.0 * map_size.1 - bomb_cnt;
         self.curr_pos = (map_size.0 / 2 - 1, map_size.1 / 2 - 1);
+        self.over = false;
+    }
+
+    pub fn conf_mine_map(mut self, map_size: (u16, u16), bomb_cnt: u16) -> Self {
+        self.init_members(map_size, bomb_cnt);
         self
     }
 
@@ -175,7 +186,6 @@ impl App {
 
         for i in 0..bomb_cnt {
             let (x, y) = positions[i as usize];
-
             self.mine_map[y as usize][x as usize].content = TileContent::Bomb;
         }
 
@@ -200,7 +210,7 @@ impl App {
     }
 
     pub fn reset(&mut self) {
-        self.over = false;
+        self.init_members(self.map_size, self.bomb_cnt);
         self.init_map();
     }
 
@@ -248,13 +258,14 @@ impl App {
         self.over = true;
     }
 
-    fn uncover_dfs(&mut self, x: u16, y: u16, go: bool) {
+    fn uncover_dfs(&mut self, x: u16, y: u16, go: bool) -> u32 {
         let (width, height) = self.map_size;
+        let mut cnt = 1;
 
         self.mine_map[y as usize][x as usize].cover = None;
 
         if !go {
-            return;
+            return cnt;
         }
 
         for (dx, dy) in DXDY4 {
@@ -272,12 +283,14 @@ impl App {
 
             if let TileContent::Empty(n) = tile.content {
                 if n == 0 {
-                    self.uncover_dfs(new_x as u16, new_y as u16, true);
+                    cnt += self.uncover_dfs(new_x as u16, new_y as u16, true);
                 } else {
-                    self.uncover_dfs(new_x as u16, new_y as u16, false);
+                    cnt += self.uncover_dfs(new_x as u16, new_y as u16, false);
                 }
             }
         }
+
+        cnt
     }
 
     pub fn uncover_tile(&mut self) {
@@ -292,10 +305,15 @@ impl App {
 
         match &tile.content {
             TileContent::Empty(n) => {
-                if *n == 0 {
-                    self.uncover_dfs(x, y, true);
+                let cnt = if *n == 0 {
+                    self.uncover_dfs(x, y, true)
                 } else {
-                    self.uncover_dfs(x, y, false);
+                    self.uncover_dfs(x, y, false)
+                } as u16;
+
+                self.empty_cnt = self.empty_cnt.saturating_sub(cnt);
+                if self.empty_cnt == 0 {
+                    self.over = true;
                 }
             }
             TileContent::Bomb => {

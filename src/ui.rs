@@ -1,8 +1,7 @@
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
-    text::Span,
-    widgets::{Block, BorderType, Borders, Padding, Paragraph},
+    widgets::{Block, BorderType, Borders, Padding},
 };
 
 use crate::{app::App, tui::Frame};
@@ -16,7 +15,12 @@ pub fn render(app: &mut App, f: &mut Frame) {
 }
 
 fn render_game(app: &mut App, f: &mut Frame) {
-    let size = f.size();
+    let (map_width, map_height) = app.map_size;
+    let size = Rect {
+        width: (map_width * 2) + 2,
+        height: map_height + 2,
+        ..f.size()
+    };
 
     let block = Block::default()
         .borders(Borders::ALL)
@@ -24,7 +28,6 @@ fn render_game(app: &mut App, f: &mut Frame) {
         .padding(Padding::zero());
     f.render_widget(block, size);
 
-    let (map_width, map_height) = app.map_size;
     let (map_ui_x, map_ui_y) = (size.x + 1, size.y + 1);
     let (curr_x, curr_y) = app.curr_pos;
 
@@ -57,7 +60,11 @@ fn render_game(app: &mut App, f: &mut Frame) {
 fn render_menu(app: &mut App, f: &mut Frame) {}
 
 fn render_over(app: &mut App, f: &mut Frame) {
-    let message = " GAME OVER! ";
+    let (message, fg_color, bg_color) = if app.empty_cnt == 0 {
+        (" YOU WIN! ", Color::Yellow, Color::Black)
+    } else {
+        (" GAME OVER! ", Color::White, Color::Black)
+    };
     let len_msg = message.len() as u16;
     let (map_w, map_h) = app.map_size;
     let (mid_x, mid_y) = (1 + map_w / 2, 1 + map_h / 2);
@@ -65,7 +72,7 @@ fn render_over(app: &mut App, f: &mut Frame) {
     let chunk = {
         let base_rect = Rect::default();
         Rect {
-            x: over_x,
+            x: over_x + 2,
             y: over_y,
             width: len_msg + 2,
             height: 3,
@@ -75,7 +82,7 @@ fn render_over(app: &mut App, f: &mut Frame) {
 
     let block = Block::default()
         .borders(Borders::ALL)
-        .style(Style::default().fg(Color::White).bg(Color::Black));
+        .style(Style::default().fg(fg_color).bg(bg_color));
     f.render_widget(block, chunk);
 
     let buf = f.buffer_mut();
@@ -84,13 +91,19 @@ fn render_over(app: &mut App, f: &mut Frame) {
         let s = ch.to_string();
         buf.get_mut(x, y)
             .set_symbol(s.as_str())
-            .set_fg(Color::White)
-            .set_bg(Color::Black);
+            .set_fg(fg_color)
+            .set_bg(bg_color);
     }
     for y in (chunk.y)..(chunk.y + chunk.height) {
         let x = chunk.x - 1;
-        buf.get_mut(x, y).set_symbol(" ").set_bg(Color::Black);
+        buf.get_mut(x, y)
+            .set_symbol(" ")
+            .set_bg(bg_color)
+            .set_fg(fg_color);
         let x = chunk.x + chunk.width;
-        buf.get_mut(x, y).set_symbol(" ").set_bg(Color::Black);
+        buf.get_mut(x, y)
+            .set_symbol(" ")
+            .set_bg(bg_color)
+            .set_fg(fg_color);
     }
 }
