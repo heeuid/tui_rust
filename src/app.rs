@@ -1,13 +1,13 @@
 use rand::prelude::*;
 use ratatui::style::{Color, Style};
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum TileContent {
     Empty(u8),
     Bomb,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum TileCover {
     Empty,
     QuestionMark,
@@ -17,14 +17,14 @@ pub enum TileCover {
 impl TileCover {
     pub fn next_cover(&self) -> Self {
         match self {
-            Self::Empty => Self::QuestionMark,
-            Self::QuestionMark => Self::FlagMark,
-            Self::FlagMark => Self::Empty,
+            Self::Empty => Self::FlagMark,
+            Self::FlagMark => Self::QuestionMark,
+            Self::QuestionMark => Self::Empty,
         }
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct Tile {
     content: TileContent,
     cover: Option<TileCover>,
@@ -46,11 +46,24 @@ impl Tile {
     pub fn symbol_n_style<'a>(&self) -> (&'a str, Style) {
         match &self.cover {
             Some(cover) => match cover {
-                TileCover::Empty => ("  ", Style::default().bg(Color::DarkGray)),
-                TileCover::QuestionMark => {
-                    (" ?", Style::default().bg(Color::DarkGray).fg(Color::Yellow))
-                }
-                TileCover::FlagMark => (" P", Style::default().bg(Color::DarkGray).fg(Color::Red)),
+                TileCover::Empty => (
+                    "ㅁ",
+                    Style::default()
+                        .bg(Color::Rgb(180, 180, 180))
+                        .fg(Color::White),
+                ),
+                TileCover::QuestionMark => (
+                    " ?",
+                    Style::default()
+                        .bg(Color::Rgb(200, 200, 180))
+                        .fg(Color::Yellow),
+                ),
+                TileCover::FlagMark => (
+                    " ⚑",
+                    Style::default()
+                        .bg(Color::Rgb(200, 180, 180))
+                        .fg(Color::Red),
+                ),
             },
             None => match self.content {
                 TileContent::Empty(num) => {
@@ -65,13 +78,36 @@ impl Tile {
                         8 => " 8",
                         _ => " .",
                     };
-                    (s, Style::default().bg(EMPTY_NUM_COLORS[num as usize]))
+                    (
+                        s,
+                        Style::default()
+                            .bg(EMPTY_NUM_COLORS[num as usize])
+                            .fg(Color::Black),
+                    )
                 }
-                TileContent::Bomb => (" *", Style::default().bg(Color::Gray).fg(Color::Red)),
+                TileContent::Bomb => (
+                    " *",
+                    Style::default()
+                        .bg(Color::Rgb(250, 200, 200))
+                        .fg(Color::Red),
+                ),
             },
         }
     }
 }
+
+const DXDY8: [(i32, i32); 8] = [
+    (-1, -1),
+    (-1, 0),
+    (-1, 1),
+    (0, 1),
+    (1, 1),
+    (1, 0),
+    (1, -1),
+    (0, -1),
+];
+
+const DXDY4: [(i32, i32); 4] = [(-1, 0), (0, 1), (1, 0), (0, -1)];
 
 /// Application.
 #[derive(Debug, Default)]
@@ -80,6 +116,7 @@ pub struct App {
     pub should_quit: bool,
 
     pub menu: bool,
+    pub over: bool,
 
     pub map_size: (u16, u16), //(w,h)
     pub bomb_cnt: u16,
@@ -104,11 +141,11 @@ impl App {
     pub fn conf_mine_map(mut self, map_size: (u16, u16), bomb_cnt: u16) -> Self {
         self.map_size = map_size;
         self.bomb_cnt = bomb_cnt;
-        self.curr_pos = (map_size.0 / 2, map_size.1 / 2);
+        self.curr_pos = (map_size.0 / 2 - 1, map_size.1 / 2 - 1);
         self
     }
 
-    pub fn init_mine_map(mut self) -> Self {
+    fn init_map(&mut self) {
         let (width, height) = self.map_size;
         let bomb_cnt = self.bomb_cnt;
         let mut rng = rand::thread_rng();
@@ -124,7 +161,10 @@ impl App {
 
                 self.mine_map[size - 1].push(Tile {
                     content: TileContent::Empty(0),
-                    cover: None, //Some(TileCover::Empty),
+                    // cover: Some(TileCover::FlagMark),
+                    // cover: Some(TileCover::QuestionMark),
+                    cover: Some(TileCover::Empty),
+                    // cover: None,
                 });
 
                 positions.push((x, y));
@@ -139,26 +179,15 @@ impl App {
             self.mine_map[y as usize][x as usize].content = TileContent::Bomb;
         }
 
-        let dxdys = [
-            (-1, -1),
-            (-1, 0),
-            (-1, 1),
-            (0, 1),
-            (1, 1),
-            (1, 0),
-            (1, -1),
-            (0, -1),
-        ];
-
         for i in 0..bomb_cnt {
             let (x, y) = positions[i as usize];
             let x = x as i32;
             let y = y as i32;
 
-            for (dx, dy) in dxdys {
+            for (dx, dy) in DXDY8 {
                 let (new_x, new_y) = (x + dx, y + dy);
 
-                if !(0 <= new_x && new_x < height as i32 && 0 <= new_y && new_y < height as i32) {
+                if !(0 <= new_x && new_x < width as i32 && 0 <= new_y && new_y < height as i32) {
                     continue;
                 }
 
@@ -168,7 +197,15 @@ impl App {
                 }
             }
         }
+    }
 
+    pub fn reset(&mut self) {
+        self.over = false;
+        self.init_map();
+    }
+
+    pub fn init_mine_map(mut self) -> Self {
+        self.init_map();
         self
     }
 
@@ -196,10 +233,76 @@ impl App {
         self.curr_pos.1 = (y + 1) % h;
     }
 
+    fn game_over(&mut self) {
+        for row in self.mine_map.iter_mut() {
+            for cell in row {
+                match cell.content {
+                    TileContent::Bomb => {
+                        cell.cover = None;
+                    }
+                    _ => {}
+                }
+            }
+        }
+
+        self.over = true;
+    }
+
+    fn uncover_dfs(&mut self, x: u16, y: u16, go: bool) {
+        let (width, height) = self.map_size;
+
+        self.mine_map[y as usize][x as usize].cover = None;
+
+        if !go {
+            return;
+        }
+
+        for (dx, dy) in DXDY4 {
+            let (new_x, new_y) = (x as i32 + dx, y as i32 + dy);
+
+            if new_x < 0 || new_x >= width as i32 || new_y < 0 || new_y >= height as i32 {
+                continue;
+            }
+
+            let tile = self.mine_map[new_y as usize][new_x as usize];
+
+            if let None = tile.cover {
+                continue;
+            }
+
+            if let TileContent::Empty(n) = tile.content {
+                if n == 0 {
+                    self.uncover_dfs(new_x as u16, new_y as u16, true);
+                } else {
+                    self.uncover_dfs(new_x as u16, new_y as u16, false);
+                }
+            }
+        }
+    }
+
     pub fn uncover_tile(&mut self) {
         let (x, y) = self.curr_pos;
-        let tile = &mut self.mine_map[y as usize][x as usize];
-        tile.cover = None;
+        let tile = self.mine_map[y as usize][x as usize];
+
+        if let Some(TileCover::FlagMark) = &tile.cover {
+            return;
+        } else if let None = &tile.cover {
+            return;
+        }
+
+        match &tile.content {
+            TileContent::Empty(n) => {
+                if *n == 0 {
+                    self.uncover_dfs(x, y, true);
+                } else {
+                    self.uncover_dfs(x, y, false);
+                }
+            }
+            TileContent::Bomb => {
+                self.game_over();
+                return;
+            }
+        }
     }
 
     pub fn change_cover(&mut self) {

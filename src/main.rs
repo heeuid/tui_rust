@@ -24,12 +24,12 @@ fn main() -> Result<()> {
     // Create an application.
     let mut app = App::new();
 
-    app = app.conf_mine_map((30, 30), 300).init_mine_map();
+    app = app.conf_mine_map((40, 30), 100).init_mine_map();
 
     // Initialize the terminal user interface.
     let backend = CrosstermBackend::new(std::io::stderr());
     let terminal = Terminal::new(backend)?;
-    let events = EventHandler::new(250);
+    let events = EventHandler::new(100);
     let mut tui = Tui::new(terminal, events);
     tui.enter()?;
 
