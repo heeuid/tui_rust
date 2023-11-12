@@ -24,15 +24,15 @@ fn main() -> Result<()> {
     // Create an application.
     let mut app = App::new();
 
-    //app = app.conf_mine_map((50, 40), 300).init_mine_map();
-    //app = app.conf_mine_map((50, 40), 250).init_mine_map();
-    app = app.conf_mine_map((50, 40), 200).init_mine_map();
-    //app = app.conf_mine_map((40, 30), 200).init_mine_map();
-    //app = app.conf_mine_map((40, 30), 150).init_mine_map();
-    //app = app.conf_mine_map((40, 30), 100).init_mine_map();
-    //app = app.conf_mine_map((20, 15), 50).init_mine_map();
-    //app = app.conf_mine_map((20, 15), 25).init_mine_map();
-    //app = app.conf_mine_map((20, 15), 10).init_mine_map();
+    //app.init_mine_map((50, 40), 300);
+    //app.init_mine_map((50, 40), 250);
+    app.init_mine_map((50, 40), 200);
+    //app.init_mine_map((40, 30), 200);
+    //app.init_mine_map((40, 30), 150);
+    //app.init_mine_map((40, 30), 100);
+    //app.init_mine_map((20, 15), 50);
+    //app.init_mine_map((20, 15), 25);
+    //app.init_mine_map((20, 15), 10);
 
     // Initialize the terminal user interface.
     let backend = CrosstermBackend::new(std::io::stderr());

@@ -33,7 +33,12 @@ mod tile {
         pub cover: Option<TileCover>,
     }
 
-    const EMPTY_NUM_COLORS: [Color; 9] = [
+    const TILE_EMPTY_COVER_BG_COLOR: Color = Color::Rgb(180, 180, 180);
+    const TILE_QUESTION_MARK_COVER_BG_COLOR: Color = Color::Rgb(200, 200, 180);
+    const TILE_FLAG_MARK_COVER_BG_COLOR: Color = Color::Rgb(200, 180, 180);
+
+    const TILE_BOMB_CONTENT_BG_COLOR: Color = Color::Rgb(250, 200, 200);
+    const TILE_EMPTY_CONTENT_NUM_BG_COLORS: [Color; 9] = [
         Color::Gray,
         Color::LightBlue,
         Color::LightRed,
@@ -52,19 +57,19 @@ mod tile {
                     TileCover::Empty => (
                         "ㅁ",
                         Style::default()
-                            .bg(Color::Rgb(180, 180, 180))
+                            .bg(TILE_EMPTY_COVER_BG_COLOR)
                             .fg(Color::White),
                     ),
                     TileCover::QuestionMark => (
                         " ?",
                         Style::default()
-                            .bg(Color::Rgb(200, 200, 180))
+                            .bg(TILE_QUESTION_MARK_COVER_BG_COLOR)
                             .fg(Color::Yellow),
                     ),
                     TileCover::FlagMark => (
                         " ⚑",
                         Style::default()
-                            .bg(Color::Rgb(200, 180, 180))
+                            .bg(TILE_FLAG_MARK_COVER_BG_COLOR)
                             .fg(Color::Red),
                     ),
                 },
@@ -84,14 +89,14 @@ mod tile {
                         (
                             s,
                             Style::default()
-                                .bg(EMPTY_NUM_COLORS[num as usize])
+                                .bg(TILE_EMPTY_CONTENT_NUM_BG_COLORS[num as usize])
                                 .fg(Color::Black),
                         )
                     }
                     TileContent::Bomb => (
                         " *",
                         Style::default()
-                            .bg(Color::Rgb(250, 200, 200))
+                            .bg(TILE_BOMB_CONTENT_BG_COLOR)
                             .fg(Color::Red),
                     ),
                 },
@@ -149,11 +154,6 @@ impl App {
         self.empty_cnt = map_size.0 * map_size.1 - bomb_cnt;
         self.curr_pos = (map_size.0 / 2 - 1, map_size.1 / 2 - 1);
         self.over = false;
-    }
-
-    pub fn conf_mine_map(mut self, map_size: (u16, u16), bomb_cnt: u16) -> Self {
-        self.init_members(map_size, bomb_cnt);
-        self
     }
 
     fn init_map(&mut self) {
@@ -214,9 +214,9 @@ impl App {
         self.init_map();
     }
 
-    pub fn init_mine_map(mut self) -> Self {
+    pub fn init_mine_map(&mut self, map_size: (u16, u16), bomb_cnt: u16) {
+        self.init_members(map_size, bomb_cnt);
         self.init_map();
-        self
     }
 
     pub fn move_right(&mut self) {
