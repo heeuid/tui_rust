@@ -105,6 +105,116 @@ mod tile {
     }
 }
 
+#[derive(Debug, Clone, Copy, Default)]
+pub enum MapSize {
+    #[default]
+    Large,
+    Normal,
+    Small,
+}
+
+impl MapSize {
+    pub fn up(&self) -> MapSize {
+        match self {
+            MapSize::Large => MapSize::Small,
+            MapSize::Normal => MapSize::Large,
+            MapSize::Small => MapSize::Normal,
+        }
+    }
+
+    pub fn down(&self) -> MapSize {
+        match self {
+            MapSize::Large => MapSize::Normal,
+            MapSize::Normal => MapSize::Small,
+            MapSize::Small => MapSize::Large,
+        }
+    }
+
+    pub fn map_size(&self) -> (u16, u16) {
+        match self {
+            Self::Large => (50, 40),
+            Self::Normal => (40, 30),
+            Self::Small => (20, 15),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, Default)]
+pub enum GameLevel {
+    #[default]
+    Hard,
+    Normal,
+    Easy,
+}
+
+impl GameLevel {
+    pub fn up(&self) -> GameLevel {
+        match self {
+            GameLevel::Hard => GameLevel::Easy,
+            GameLevel::Normal => GameLevel::Hard,
+            GameLevel::Easy => GameLevel::Normal,
+        }
+    }
+
+    pub fn down(&self) -> GameLevel {
+        match self {
+            GameLevel::Hard => GameLevel::Normal,
+            GameLevel::Normal => GameLevel::Easy,
+            GameLevel::Easy => GameLevel::Hard,
+        }
+    }
+
+    pub fn bomb_cnt(&self, map_size: MapSize) -> u16 {
+        match map_size {
+            MapSize::Large => match self {
+                Self::Hard => 500,
+                Self::Normal => 300,
+                Self::Easy => 200,
+            },
+            MapSize::Normal => match self {
+                Self::Hard => 300,
+                Self::Normal => 200,
+                Self::Easy => 100,
+            },
+            MapSize::Small => match self {
+                Self::Hard => 75,
+                Self::Normal => 35,
+                Self::Easy => 15,
+            },
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, Default)]
+pub enum MenuKind {
+    #[default]
+    MapSize,
+    GameLevel,
+}
+
+impl MenuKind {
+    pub fn left(&self) -> MenuKind {
+        match self {
+            MenuKind::MapSize => MenuKind::GameLevel,
+            MenuKind::GameLevel => MenuKind::MapSize,
+        }
+    }
+
+    pub fn right(&self) -> MenuKind {
+        match self {
+            MenuKind::MapSize => MenuKind::GameLevel,
+            MenuKind::GameLevel => MenuKind::MapSize,
+        }
+    }
+}
+
+pub enum Movement {
+    Up,
+    Down,
+    Left,
+    Right,
+}
+
 const DXDY8: [(i32, i32); 8] = [
     (-1, -1),
     (-1, 0),
@@ -125,6 +235,11 @@ pub struct App {
     pub should_quit: bool,
 
     pub menu: bool,
+    pub menu_focus: MenuKind,
+
+    pub menu_map_size: MapSize,
+    pub menu_game_level: GameLevel,
+
     pub over: bool,
 
     pub map_size: (u16, u16), //(w,h)
@@ -137,7 +252,13 @@ pub struct App {
 impl App {
     /// Constructs a new instance of [`App`].
     pub fn new() -> Self {
-        Self::default()
+        Self {
+            menu: true,
+            menu_focus: MenuKind::MapSize,
+            menu_map_size: MapSize::Normal,
+            menu_game_level: GameLevel::Normal,
+            ..Self::default()
+        }
     }
 
     /// Handles the tick event of the terminal.
@@ -148,12 +269,40 @@ impl App {
         self.should_quit = true;
     }
 
+    pub fn menu_move(&mut self, movement: Movement) {
+        match movement {
+            Movement::Left => {
+                self.menu_focus = self.menu_focus.left();
+            }
+            Movement::Right => {
+                self.menu_focus = self.menu_focus.right();
+            }
+            Movement::Up => match self.menu_focus {
+                MenuKind::MapSize => {
+                    self.menu_map_size = self.menu_map_size.up();
+                }
+                MenuKind::GameLevel => {
+                    self.menu_game_level = self.menu_game_level.up();
+                }
+            },
+            Movement::Down => match self.menu_focus {
+                MenuKind::MapSize => {
+                    self.menu_map_size = self.menu_map_size.down();
+                }
+                MenuKind::GameLevel => {
+                    self.menu_game_level = self.menu_game_level.down();
+                }
+            },
+        }
+    }
+
     fn init_members(&mut self, map_size: (u16, u16), bomb_cnt: u16) {
         self.map_size = map_size;
         self.bomb_cnt = bomb_cnt;
         self.empty_cnt = map_size.0 * map_size.1 - bomb_cnt;
         self.curr_pos = (map_size.0 / 2 - 1, map_size.1 / 2 - 1);
         self.over = false;
+        self.menu = false;
     }
 
     fn init_map(&mut self) {
@@ -210,8 +359,8 @@ impl App {
     }
 
     pub fn reset(&mut self) {
-        self.init_members(self.map_size, self.bomb_cnt);
-        self.init_map();
+        self.over = false;
+        self.menu = true;
     }
 
     pub fn init_mine_map(&mut self, map_size: (u16, u16), bomb_cnt: u16) {
@@ -219,28 +368,15 @@ impl App {
         self.init_map();
     }
 
-    pub fn move_right(&mut self) {
-        let (w, _) = self.map_size;
-        let (x, _) = self.curr_pos;
-        self.curr_pos.0 = (x + 1) % w;
-    }
-
-    pub fn move_left(&mut self) {
-        let (w, _) = self.map_size;
-        let (x, _) = self.curr_pos;
-        self.curr_pos.0 = (x + w - 1) % w;
-    }
-
-    pub fn move_up(&mut self) {
-        let (_, h) = self.map_size;
-        let (_, y) = self.curr_pos;
-        self.curr_pos.1 = (y + h - 1) % h;
-    }
-
-    pub fn move_down(&mut self) {
-        let (_, h) = self.map_size;
-        let (_, y) = self.curr_pos;
-        self.curr_pos.1 = (y + 1) % h;
+    pub fn game_move(&mut self, movement: Movement) {
+        let (w, h) = self.map_size;
+        let (x, y) = self.curr_pos;
+        match movement {
+            Movement::Up => self.curr_pos.1 = (y + h - 1) % h,
+            Movement::Down => self.curr_pos.1 = (y + 1) % h,
+            Movement::Left => self.curr_pos.0 = (x + w - 1) % w,
+            Movement::Right => self.curr_pos.0 = (x + 1) % w,
+        }
     }
 
     fn game_over(&mut self) {

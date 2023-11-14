@@ -1,11 +1,14 @@
 use ratatui::{
-    //layout::{Alignment, Constraint, Direction, Layout, Rect},
-    layout::Rect,
-    style::{Color, Style},
-    widgets::{Block, Borders, Padding},
+    layout::{Alignment, Constraint, Direction, Layout, Rect},
+    style::{Color, Modifier, Style},
+    text::{Line, Span},
+    widgets::{Block, Borders, Padding, Paragraph, Wrap},
 };
 
-use crate::{app::App, tui::Frame};
+use crate::{
+    app::{App, MenuKind},
+    tui::Frame,
+};
 
 pub fn render(app: &mut App, f: &mut Frame) {
     if app.menu {
@@ -13,6 +16,92 @@ pub fn render(app: &mut App, f: &mut Frame) {
     } else {
         render_game(app, f);
     }
+}
+
+const MENU_HARD: &str = "HARD";
+const MENU_NORMAL: &str = "NORMAL";
+const MENU_EASY: &str = "EASY";
+const MENU_LARGE: &str = "LARGE";
+const MENU_SMALL: &str = "SMALL";
+
+fn render_menu(app: &mut App, f: &mut Frame) {
+    let frame_size = f.size();
+    let size = Rect {
+        width: u16::min(30, frame_size.width),
+        height: u16::min(12, frame_size.height),
+        ..frame_size
+    };
+
+    let block = Block::default()
+        .borders(Borders::ALL)
+        .style(Style::default())
+        .padding(Padding::zero())
+        .title("Menu");
+    let content_size = block.inner(size);
+    f.render_widget(block, size);
+
+    let chunks = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
+        .split(content_size);
+
+    let map_size_rect = chunks[0];
+    let game_level_rect = chunks[1];
+
+    // border setting
+    let create_block = |title| {
+        Block::default().borders(Borders::ALL).title(Span::styled(
+            title,
+            Style::default().add_modifier(Modifier::BOLD),
+        ))
+    };
+
+    let selected_style = Style::default().fg(Color::Black);
+    let unselected_style = Style::default().fg(Color::Gray);
+
+    let mut map_sizes = vec![
+        Line::from(MENU_LARGE),
+        Line::from(""),
+        Line::from(MENU_NORMAL),
+        Line::from(""),
+        Line::from(MENU_SMALL),
+    ];
+    map_sizes[app.menu_map_size as usize * 2]
+        .patch_style(Style::default().bg(Color::Black).fg(Color::White));
+    let paragraph = Paragraph::new(map_sizes.clone())
+        .style(Style::default())
+        .block(
+            create_block("Map Size").title_style(if let MenuKind::MapSize = app.menu_focus {
+                selected_style
+            } else {
+                unselected_style
+            }),
+        )
+        .alignment(Alignment::Center)
+        .wrap(Wrap { trim: true });
+    f.render_widget(paragraph, map_size_rect);
+
+    let mut game_levels = vec![
+        Line::from(MENU_HARD),
+        Line::from(""),
+        Line::from(MENU_NORMAL),
+        Line::from(""),
+        Line::from(MENU_EASY),
+    ];
+    game_levels[app.menu_game_level as usize * 2]
+        .patch_style(Style::default().bg(Color::Black).fg(Color::White));
+    let paragraph = Paragraph::new(game_levels.clone())
+        .style(Style::default())
+        .block(create_block("Game Level").title_style(
+            if let MenuKind::GameLevel = app.menu_focus {
+                selected_style
+            } else {
+                unselected_style
+            },
+        ))
+        .alignment(Alignment::Center)
+        .wrap(Wrap { trim: true });
+    f.render_widget(paragraph, game_level_rect);
 }
 
 fn render_game(app: &mut App, f: &mut Frame) {
@@ -27,7 +116,8 @@ fn render_game(app: &mut App, f: &mut Frame) {
     let block = Block::default()
         .borders(Borders::ALL)
         .style(Style::default())
-        .padding(Padding::zero());
+        .padding(Padding::zero())
+        .title("Game");
     f.render_widget(block, size);
 
     let (map_ui_x, map_ui_y) = (size.x + 1, size.y + 1);
@@ -58,8 +148,6 @@ fn render_game(app: &mut App, f: &mut Frame) {
         return;
     }
 }
-
-fn render_menu(_app: &mut App, _f: &mut Frame) {}
 
 fn render_over(app: &mut App, f: &mut Frame) {
     let (message, fg_color, bg_color) = if app.empty_cnt == 0 {

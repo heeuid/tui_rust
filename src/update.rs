@@ -1,6 +1,6 @@
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
-use crate::app::App;
+use crate::app::{App, Movement};
 
 pub fn update(app: &mut App, key_event: KeyEvent) {
     if app.menu {
@@ -14,6 +14,15 @@ pub fn update(app: &mut App, key_event: KeyEvent) {
 pub fn update_menu(app: &mut App, key_event: KeyEvent) {
     match key_event.code {
         KeyCode::Esc | KeyCode::Char('q') => app.quit(),
+        KeyCode::Up | KeyCode::Char('k') => app.menu_move(Movement::Up),
+        KeyCode::Down | KeyCode::Char('j') => app.menu_move(Movement::Down),
+        KeyCode::Left | KeyCode::Char('h') => app.menu_move(Movement::Left),
+        KeyCode::Right | KeyCode::Char('l') => app.menu_move(Movement::Right),
+        KeyCode::Enter | KeyCode::Char('c') => {
+            let map_size = app.menu_map_size.map_size();
+            let bomb_cnt = app.menu_game_level.bomb_cnt(app.menu_map_size);
+            app.init_mine_map(map_size, bomb_cnt);
+        }
         _ => {}
     }
 }
@@ -33,10 +42,10 @@ pub fn update_game(app: &mut App, key_event: KeyEvent) {
                 app.uncover_tile();
             }
         }
-        KeyCode::Up | KeyCode::Char('k') => app.move_up(),
-        KeyCode::Down | KeyCode::Char('j') => app.move_down(),
-        KeyCode::Left | KeyCode::Char('h') => app.move_left(),
-        KeyCode::Right | KeyCode::Char('l') => app.move_right(),
+        KeyCode::Up | KeyCode::Char('k') => app.game_move(Movement::Up),
+        KeyCode::Down | KeyCode::Char('j') => app.game_move(Movement::Down),
+        KeyCode::Left | KeyCode::Char('h') => app.game_move(Movement::Left),
+        KeyCode::Right | KeyCode::Char('l') => app.game_move(Movement::Right),
         KeyCode::Enter => app.uncover_tile(),
         KeyCode::Char(' ') | KeyCode::Char('f') => app.change_cover(),
         _ => {}
