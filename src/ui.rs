@@ -34,7 +34,7 @@ fn render_menu(app: &mut App, f: &mut Frame) {
 
     let block = Block::default()
         .borders(Borders::ALL)
-        .style(Style::default())
+        .style(Style::default().bg(Color::White).fg(Color::Black))
         .padding(Padding::zero())
         .title("Menu");
     let content_size = block.inner(size);
@@ -69,7 +69,7 @@ fn render_menu(app: &mut App, f: &mut Frame) {
     map_sizes[app.menu_map_size as usize * 2]
         .patch_style(Style::default().bg(Color::Black).fg(Color::White));
     let paragraph = Paragraph::new(map_sizes.clone())
-        .style(Style::default())
+        .style(Style::default().bg(Color::White))
         .block(
             create_block("Map Size").title_style(if let MenuKind::MapSize = app.menu_focus {
                 selected_style
@@ -91,7 +91,7 @@ fn render_menu(app: &mut App, f: &mut Frame) {
     game_levels[app.menu_game_level as usize * 2]
         .patch_style(Style::default().bg(Color::Black).fg(Color::White));
     let paragraph = Paragraph::new(game_levels.clone())
-        .style(Style::default())
+        .style(Style::default().bg(Color::White))
         .block(create_block("Game Level").title_style(
             if let MenuKind::GameLevel = app.menu_focus {
                 selected_style
