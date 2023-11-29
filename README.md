@@ -1,2 +1,3 @@
 # tui_rust
-collection of tui programs written in rust ("one branch = one tui program")
+Collection of tui programs written in rust  
+Each program == A package
