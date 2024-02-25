@@ -44,7 +44,6 @@ pub fn ui<B: Backend>(f: &mut Frame<B>, app: &App) {
                     Constraint::Length(HEIGHTS.arithmetic),
                 ]
             }
-            .as_ref(),
         )
         .split(sub_chunks[1]);
 
@@ -65,8 +64,8 @@ pub fn ui<B: Backend>(f: &mut Frame<B>, app: &App) {
         Spans::from(" "),
         Spans::from("[Keys]"),
         Spans::from("------"),
-        Spans::from("1. ENTER      : evaluate expression"),
-        Spans::from("2. TAB/BACKTAB: change mode"),
+        Spans::from("1. ENTER       : evaluate expression"),
+        Spans::from("2. TAB/BACKTAB : change mode"),
         Spans::from("3. CTRL+c      : quit this program"),
         Spans::from("4. CTRL+l      : clear expression"),
         Spans::from("5. CTRL+f      : get the latest expression"),
