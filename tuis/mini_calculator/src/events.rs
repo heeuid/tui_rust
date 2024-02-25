@@ -1,5 +1,6 @@
 use crate::{App, AppEvent, TabKind};
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+use math_parse::MathParse;
 //////////////////////////////////////////////////////
 pub fn do_event(app: &mut App, key_event: &KeyEvent) -> AppEvent {
     let app_event = match key_event.modifiers {
@@ -79,13 +80,38 @@ fn do_event_key_code(app: &mut App, key_code: KeyCode) -> AppEvent {
         KeyCode::Enter => {
             // evaluate expression and save the result to app.results
             if !app.expression.is_empty() {
-                let result = meval::eval_str_with_context(app.expression.as_str(), &app.context);
-                match result {
-                    Ok(value) => {
-                        app.results.push_back((app.expression.clone(), value));
-                        app.expression.clear();
-                        AppEvent::Enter
-                    }
+                match MathParse::parse(app.expression.as_str()) {
+                    Ok(expr) => {
+                        let tab_idx = app.tab_idx;
+                        if app.tabs[tab_idx] == "basic" {
+                            match expr.solve_float(None) {
+                                Ok(value) => {
+                                    app.results.push_back((app.expression.clone(), value));
+                                    app.expression.clear();
+                                    AppEvent::Enter
+                                }
+                                Err(_) => {
+                                    app.error = true;
+                                    AppEvent::Error
+                                }
+                            }
+                        } else if app.tabs[tab_idx] == "program" {
+                            match expr.solve_int(None) {
+                                Ok(value) => {
+                                    app.results.push_back((app.expression.clone(), value as f64));
+                                    app.expression.clear();
+                                    AppEvent::Enter
+                                }
+                                Err(_) => {
+                                    app.error = true;
+                                    AppEvent::Error
+                                }
+                            }
+                        } else {
+                            app.error = true;
+                            AppEvent::Error
+                        }
+                    } 
                     Err(_) => {
                         app.error = true;
                         AppEvent::Error

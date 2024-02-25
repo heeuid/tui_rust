@@ -7,8 +7,8 @@ use crossterm::{
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
-use std::collections::VecDeque;
 use std::{
+    collections::VecDeque,
     error::Error,
     io,
     time::{Duration, Instant},
@@ -17,6 +17,7 @@ use tui::{
     backend::{Backend, CrosstermBackend},
     Terminal,
 };
+use math_parse::MathParse;
 //////////////////////////////////////////////////////
 struct EvalRes {
     hex: String,
@@ -32,7 +33,6 @@ pub struct App<'a> {
     results: VecDeque<(String, f64)>,
     save_expression: String,
     expression: String,
-    context: meval::Context<'a>,
     error: bool,
     last_result: EvalRes,
 }
@@ -46,15 +46,6 @@ impl<'a> App<'a> {
             results: VecDeque::new(),
             save_expression: String::new(),
             expression: String::new(),
-            context: {
-                let mut context = meval::Context::new();
-                context
-                    .func2("ls4", |x, y| ((x as u32) << (y as u32)) as f64)
-                    .func2("rs4", |x, y| ((x as u32) >> (y as u64)) as f64)
-                    .func2("ls8", |x, y| ((x as u64) << (y as u32)) as f64)
-                    .func2("rs8", |x, y| ((x as u64) >> (y as u64)) as f64);
-                context
-            },
             error: false,
             last_result: EvalRes {
                 hex: String::new(),
@@ -148,17 +139,29 @@ fn run_app<B: Backend>(
                 }
             }
 
-            let value = meval::eval_str_with_context(&app.expression, &app.context);
-            if let Ok(val) = value {
-                app.last_result.hex = format!("0x{:X}", val as i128);
-                app.last_result.dec = format!("{}", val);
-                app.last_result.oct = format!("0o{:o}", val as i128);
-                app.last_result.bin = format!("0b{:b}", val as i128);
-            } else if app.expression.is_empty() {
+            if app.expression.is_empty() {
                 app.last_result.hex.clear();
                 app.last_result.dec.clear();
                 app.last_result.oct.clear();
                 app.last_result.bin.clear();
+            } else {
+                match MathParse::parse(app.expression.as_str()) {
+                    Ok(expr) => {
+                        let tab_idx = app.tab_idx;
+                        if app.tabs[tab_idx] == "program" {
+                            match expr.solve_int(None) {
+                                Ok(val) => {
+                                    app.last_result.hex = format!("0x{:X}", val as i64);
+                                    app.last_result.dec = format!("{}", val);
+                                    app.last_result.oct = format!("0o{:o}", val as i64);
+                                    app.last_result.bin = format!("0b{:b}", val as i64);
+                                }
+                                Err(_) => {}
+                            }
+                        }
+                    } 
+                    Err(_) => {}
+                }
             }
         }
 
