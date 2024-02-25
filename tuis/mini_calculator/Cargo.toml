@@ -1,5 +1,5 @@
 [package]
-name = "tui_test"
+name = "mini_calculator"
 version = "0.1.0"
 edition = "2021"
 
