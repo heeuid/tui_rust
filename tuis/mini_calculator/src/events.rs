@@ -50,6 +50,12 @@ fn do_event_key_code_with_control(app: &mut App, key_code: KeyCode) -> AppEvent 
                 }
                 AppEvent::ResultsExpression
             }
+            'f' => {
+                if let Some((expr, _)) = app.results.back() {
+                    app.expression = expr.clone();
+                }
+                AppEvent::ResultsExpression
+            }
             _ => AppEvent::Nothing,
         },
         _ => AppEvent::Nothing,
@@ -106,7 +112,8 @@ fn do_event_key_code(app: &mut App, key_code: KeyCode) -> AppEvent {
             AppEvent::Tab
         }
         KeyCode::Up => {
-            if app.expr_idx < app.results.len() {
+            let result_len = app.results.len();
+            if app.expr_idx < result_len {
                 if app.expr_idx == 0 {
                     app.save_expression.clear();
                     app.save_expression = std::mem::take(&mut app.expression);
@@ -114,11 +121,12 @@ fn do_event_key_code(app: &mut App, key_code: KeyCode) -> AppEvent {
                 app.expr_idx += 1;
                 app.expression.clear();
                 app.expression
-                    .push_str(app.results[app.expr_idx - 1].0.as_str());
+                    .push_str(app.results[result_len - app.expr_idx].0.as_str());
             }
             AppEvent::Expression
         }
         KeyCode::Down => {
+            let result_len = app.results.len();
             if app.expr_idx > 0 {
                 app.expr_idx -= 1;
                 app.expression.clear();
@@ -127,7 +135,7 @@ fn do_event_key_code(app: &mut App, key_code: KeyCode) -> AppEvent {
                     app.expression.push_str(app.save_expression.as_str());
                 } else {
                     app.expression
-                        .push_str(app.results[app.expr_idx - 1].0.as_str());
+                        .push_str(app.results[result_len - app.expr_idx].0.as_str());
                 };
             }
             AppEvent::Expression
