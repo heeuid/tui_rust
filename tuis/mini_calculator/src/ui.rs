@@ -128,7 +128,11 @@ pub fn ui<B: Backend>(f: &mut Frame<B>, app: &App) {
     let res_cnt = app.results.len();
     for i in start_idx..res_cnt {
         let result = &app.results[i];
-        let s = format!("{} = {}", result.0, result.1);
+        let s = if app.tab_idx == TabKind::Programming as usize {
+            format!("{} = 0x{:X} ({})", result.0, result.1 as u64, result.1)
+        } else {
+            format!("{} = {}", result.0, result.1)
+        };
         results_text.push(Spans::from(s));
     }
 
